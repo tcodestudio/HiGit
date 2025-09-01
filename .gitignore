@@ -14,3 +14,5 @@
 *.cer
 *.p12
 build-profile-prod.json5
+.claude
+CLAUDE.md
