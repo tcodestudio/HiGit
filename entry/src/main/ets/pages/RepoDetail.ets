@@ -1,26 +1,15 @@
 import { BreakpointConstants } from "../constants/BreakpointConstants"
-import { RepoItem } from "../data/RepoItem";
-import { getRepoById, removeRepo, updateRepo } from "../services/AppService";
+import { getRepoById } from "../services/AppService";
 import { CommitItemView } from "../views/CommitItemVIew";
 import { hilog } from "@kit.PerformanceAnalysisKit";
 import { common } from '@kit.AbilityKit'
 import { PopupLoading } from "../views/PopupLoading";
-import taskpool from "@ohos.taskpool";
-import {
-  getBranches,
-  initRepo,
-  getTags,
-  getCommits,
-  fetchBranch,
-  parseCommitList,
-  deleteRepo
-} from "../services/GitService";
-import { Result } from "../data/Result";
 import { PromptAction } from "@kit.ArkUI"
-import { sortBranches, truncateUrl } from "../utils/Utils";
-import { emitter } from "@kit.BasicServicesKit";
+import { truncateUrl } from "../utils/Utils";
 import { JSON } from "@kit.ArkTS";
 import { CommitItem } from '../data/Commit'
+import { ToastHook } from "../utils/ToastHook";
+import RepoDetailViewModel from "../viewModel/RepoDetailViewModel";
 
 interface SelectOption {
   value: string;
@@ -36,135 +25,27 @@ struct RepoDetail {
   private uiContext: UIContext = this.getUIContext();
   private context = this.uiContext.getHostContext() as common.UIAbilityContext;
   private promptAction: PromptAction = this.uiContext.getPromptAction();
+  private toastHook: ToastHook = new ToastHook(this.uiContext);
+  @State viewModel: RepoDetailViewModel = new RepoDetailViewModel();
   @StorageLink('currentBreakpoint') currentBreakpoint: string = BreakpointConstants.BREAKPOINT_LG;
   pathStack: NavPathStack = new NavPathStack();
-  @State repo: RepoItem | null = null;
-  @State selectedBranch: string = '';
-  @State selectedBranchIndex: number = 0;
-  @State isLoading: boolean = false;
-  @State loadingMessage: string = "";
-  @State branches: string[] = [];
-  @State tags: string[] = [];
-  @State commitList: CommitItem[] = []
-  @State showErrorMessage: boolean = false;
-  @State errorMessage: string = "";
+
+  aboutToAppear() {
+    this.viewModel.setToastHook(this.toastHook);
+    this.viewModel.setPopHandler(() => {
+      this.pathStack.pop(true);
+    })
+  }
 
   ready() {
-    this.openRepo();
-  }
-
-  openRepo() {
-    this.loadingMessage = "正在打开仓库..."
-    this.isLoading = true;
-    taskpool.execute(initRepo, this.context.filesDir, this.repo!.url, this.repo!.name, this.repo!.provider)
-      .then((data) => {
-        let result = data as Result;
-        if (!result.success) {
-          this.errorMessage = result.message;
-          this.showErrorMessage = true;
-        } else {
-          this.loadGitBranches();
-          this.loadGitTags();
-        }
-        this.isLoading = false;
-      })
-  }
-
-  saveRepo() {
-    updateRepo(this.context, this.repo!.url, this.repo!);
-  }
-
-  loadGitBranches() {
-    this.loadingMessage = "加载中..."
-    this.isLoading = true;
-    taskpool.execute(getBranches, this.repo!.url).then((data) => {
-      this.isLoading = false;
-      let result = data as Result;
-      if (result.success) {
-        let branches = JSON.parse(result.data) as Array<string>;
-        this.branches = sortBranches(branches);
-        if (this.branches.length > 0) {
-          this.selectedBranch = this.branches[0];
-          this.repo!.branch = this.selectedBranch;
-          this.repo!.branches = this.branches.length;
-          this.saveRepo();
-          this.loadGitCommits();
-        }
-      } else {
-        this.promptAction.showToast({
-          message: result.message
-        })
-        this.pathStack.pop(true);
-      }
-    })
-  }
-
-  loadGitTags() {
-    taskpool.execute(getTags, this.repo!.url).then((data) => {
-      let result = data as Result;
-      if (result.success) {
-        this.tags = JSON.parse(result.data) as Array<string>;
-        this.repo!.tags = this.tags.length;
-        this.saveRepo();
-      } else {
-        this.promptAction.showToast({
-          message: result.message
-        })
-      }
-    })
-  }
-
-  loadGitCommits() {
-    this.loadingMessage = "加载中..."
-    this.isLoading = true;
-    taskpool.execute(getCommits, this.repo!.url, this.selectedBranch, 5, 0).then((data) => {
-      let result = data as Result;
-      if (result.success) {
-        // 使用 parseCommitList 解析提交数据
-        this.commitList = parseCommitList(result.data);
-        if (this.commitList.length > 0) {
-          if (this.commitList[0].timestamp > this.repo!.time) {
-            this.repo!.time = this.commitList[0].timestamp;
-            this.saveRepo();
-          }
-        }
-        hilog.info(0x0000, "appTag", "get %{public}d commits", this.commitList.length);
-      } else {
-        this.promptAction.showToast({
-          message: result.message
-        })
-      }
-      this.isLoading = false;
-    })
-  }
-
-  gitFetch() {
-    this.loadingMessage = "分支拉取中..."
-    this.isLoading = true;
-    let task: taskpool.LongTask = new taskpool.LongTask(fetchBranch, this.repo!.url, this.selectedBranch)
-    // 先移除之前的监听器，避免重复监听
-    emitter.off("fetch");
-    // 注册新的监听器
-    emitter.on("fetch", (data: emitter.EventData) => {
-      hilog.info(0x0000, "appTag", "arkts %{public}d/%{public}d %{public}s", data.data?.process, data.data?.total,
-        data.data?.message);
-      if (data.data?.message == "end") {
-        this.loadingMessage = "拉取完成..."
-      } else if (data.data?.message == "processing") {
-        this.loadingMessage = data.data?.process + "/" + data.data?.total
-      }
-    })
-    taskpool.execute(task).then((_) => {
-      emitter.off("fetch");
-      this.loadGitCommits();
-    })
+    this.viewModel.openRepo(this.context);
   }
 
   private getRepoInitial(): string {
-    if (!this.repo || !this.repo.name) {
+    if (!this.viewModel.repo || !this.viewModel.repo.name) {
       return 'R'
     }
-    const trimmed = this.repo.name.trim()
+    const trimmed = this.viewModel.repo.name.trim()
     if (trimmed.length === 0) {
       return 'R'
     }
@@ -190,17 +71,17 @@ struct RepoDetail {
         right: 16,
       })
       .onClick(() => {
-        if (this.isLoading) {
+        if (this.viewModel.isLoading) {
           return;
         }
-        if (this.commitList.length === 0) {
+        if (this.viewModel.commitList.length === 0) {
           this.promptAction.showToast({
             message: "请先拉取该分支代码"
           })
           return;
         }
         this.pathStack.pushPathByName("Files",
-          JSON.stringify({ id: this.repo!.id, branch: this.selectedBranch }),
+          JSON.stringify({ id: this.viewModel.repo!.id, branch: this.viewModel.selectedBranch }),
           true)
       })
 
@@ -239,23 +120,7 @@ struct RepoDetail {
                 style: DialogButtonStyle.HIGHLIGHT,
                 value: '确认',
                 action: () => {
-                  this.isLoading = true;
-                  this.loadingMessage = "删除中..."
-                  taskpool.execute(deleteRepo, this.context.filesDir, this.repo!.url, this.repo!.name,
-                    this.repo!.provider).then((data) => {
-                    let result = data as Result;
-                    if (!result.success) {
-                      this.errorMessage = result.message;
-                      this.showErrorMessage = true;
-                    } else {
-                      removeRepo(this.context, this.repo!.url);
-                      this.promptAction.showToast({
-                        message: "删除成功"
-                      })
-                      this.pathStack.pop(true);
-                    }
-                    this.isLoading = false;
-                  })
+                  this.viewModel.deleteRepo(this.context);
                 }
               }],
           });
@@ -266,7 +131,7 @@ struct RepoDetail {
   @Builder
   errorView() {
     Column() {
-      Text(this.errorMessage)
+      Text(this.viewModel.errorMessage)
         .fontColor($r('sys.color.font_primary'))
         .margin(16)
         .alignSelf(ItemAlign.Start)
@@ -277,7 +142,7 @@ struct RepoDetail {
   build() {
     NavDestination() {
       RelativeContainer() {
-        if (this.repo == null) {
+        if (this.viewModel.repo == null) {
           PopupLoading({ visible: true, modalSize: 160, message: '初始化中…' })
         } else {
           Column() {
@@ -301,13 +166,14 @@ struct RepoDetail {
 
                 // 名称、提供方、URL（标题与链接左对齐，链接前不放徽章）
                 Column() {
-                  Text(this.repo.name || 'Repository')
+                  Text(this.viewModel.repo.name || 'Repository')
                     .fontSize(18)
                     .fontWeight(FontWeight.Medium)
                     .fontColor('#0F172A')
 
                   // URL 独占一行，与标题左对齐，使用智能截断
-                  Text(this.repo.url && this.repo.url.length > 0 ? truncateUrl(this.repo.url, 45) :
+                  Text(this.viewModel.repo.url && this.viewModel.repo.url.length > 0 ?
+                  truncateUrl(this.viewModel.repo.url, 45) :
                     'git@github.com:hntvdam/dam.git')
                     .fontSize(12)
                     .fontColor('#334155')
@@ -336,7 +202,7 @@ struct RepoDetail {
                     Text('分支').fontSize(12).fontColor('#64748B')
                   }
 
-                  Text(this.branches.length.toString())
+                  Text(this.viewModel.branches.length.toString())
                     .fontSize(16)
                     .fontWeight(FontWeight.Medium)
                     .fontColor('#0F172A')
@@ -354,7 +220,7 @@ struct RepoDetail {
                     Text('标签').fontSize(12).fontColor('#64748B')
                   }
 
-                  Text(`${this.repo.tags}`)
+                  Text(`${this.viewModel.repo.tags}`)
                     .fontSize(16)
                     .fontWeight(FontWeight.Medium)
                     .fontColor('#0F172A')
@@ -372,7 +238,7 @@ struct RepoDetail {
                     Text('提交').fontSize(12).fontColor('#64748B')
                   }
 
-                  Text(`${this.repo.commits}`)
+                  Text(`${this.viewModel.repo.commits}`)
                     .fontSize(16)
                     .fontWeight(FontWeight.Medium)
                     .fontColor('#0F172A')
@@ -397,9 +263,9 @@ struct RepoDetail {
             Row({ space: 8 }) {
               Text('分支').fontSize(12).fontColor('#64748B')
 
-              Select(this.branches.map((branch: string): SelectOption => ({ value: branch })))
-                .selected(this.selectedBranchIndex)
-                .value(this.selectedBranch)
+              Select(this.viewModel.branches.map((branch: string): SelectOption => ({ value: branch })))
+                .selected(this.viewModel.selectedBranchIndex)
+                .value(this.viewModel.selectedBranch)
                 .font({ size: 16, weight: 500 })
                 .fontColor('#182431')
                 .selectedOptionFont({ size: 16, weight: 400 })
@@ -411,10 +277,10 @@ struct RepoDetail {
                 .optionHeight(300)
                 .controlSize(ControlSize.SMALL)
                 .onSelect((index: number, text?: string | undefined) => {
-                  this.selectedBranchIndex = index;
+                  this.viewModel.selectedBranchIndex = index;
                   if (text) {
-                    this.selectedBranch = text;
-                    this.loadGitCommits();
+                    this.viewModel.selectedBranch = text;
+                    this.viewModel.loadGitCommits(this.context);
                   }
                 })
 
@@ -426,7 +292,7 @@ struct RepoDetail {
                   .fontColor([$r('sys.color.font_secondary')])
               }
               .onClick(() => {
-                this.gitFetch();
+                this.viewModel.gitFetch(this.context);
               })
               .margin({ right: 16 })
             }
@@ -434,7 +300,7 @@ struct RepoDetail {
             .padding({ left: 12, right: 12, top: 12 })
 
             Column() {
-              if (this.commitList.length == 0) {
+              if (this.viewModel.commitList.length == 0) {
                 // 空态提示（尚未获取该分支的提交数据）
                 Column() {
 
@@ -451,7 +317,7 @@ struct RepoDetail {
                   .backgroundColor('#0EA5E9')
                   .margin({ top: 12 })
                   .onClick(() => {
-                    this.gitFetch();
+                    this.viewModel.gitFetch(this.context);
                   })
                 }
                 .justifyContent(FlexAlign.Center)
@@ -459,7 +325,7 @@ struct RepoDetail {
                 .width('100%')
                 .padding({ top: 24, bottom: 24 })
               } else {
-                ForEach(this.commitList, (c: CommitItem) => {
+                ForEach(this.viewModel.commitList, (c: CommitItem) => {
                   CommitItemView({
                     commit: c,
                   })
@@ -481,7 +347,7 @@ struct RepoDetail {
                   .border({ width: 1, color: '#00000010' })
                   .onClick(() => {
                     this.pathStack.pushPathByName("CommitHistory",
-                      JSON.stringify({ id: this.repo!.id, branch: this.selectedBranch }),
+                      JSON.stringify({ id: this.viewModel.repo!.id, branch: this.viewModel.selectedBranch }),
                       true)
                   })
                 }
@@ -508,7 +374,7 @@ struct RepoDetail {
           .alignItems(HorizontalAlign.Start)
         }
 
-        PopupLoading({ visible: this.isLoading, modalSize: 160, message: this.loadingMessage })
+        PopupLoading({ visible: this.viewModel.isLoading, modalSize: 160, message: this.viewModel.loadingMessage })
 
       }
     }
@@ -527,7 +393,7 @@ struct RepoDetail {
         hilog.info(0x0000, "appTag", "get repo id %{public}s", raw[0]);
         let data = getRepoById(this.context, raw[0]);
         if (data) {
-          this.repo = data;
+          this.viewModel.repo = data;
           this.ready();
         } else {
           this.pathStack.pop(true);
@@ -541,7 +407,7 @@ struct RepoDetail {
       this.pathStack.pop(true);
       return true;
     })
-    .bindSheet(this.showErrorMessage, this.errorView, {
+    .bindSheet(this.viewModel.showErrorMessage, this.errorView, {
       showClose: true,
       detents: [SheetSize.MEDIUM],
       dragBar: true,
@@ -550,7 +416,7 @@ struct RepoDetail {
         title: "错误信息",
       },
       onDisappear: () => {
-        this.showErrorMessage = false;
+        this.viewModel.showErrorMessage = false;
         this.pathStack.pop(true);
       },
       backgroundColor: 125831006,
