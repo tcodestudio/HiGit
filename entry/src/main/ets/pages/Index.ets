@@ -1,5 +1,4 @@
 import { RepoItem } from '../data/RepoItem';
-import { initGit } from '../services/GitService';
 import { AboutView } from '../views/About';
 import { CreateRepo } from '../views/CreateRepo';
 import { HelpView } from '../views/Help';
@@ -7,61 +6,24 @@ import { PopupLoading } from '../views/PopupLoading';
 import { RepoItemView } from '../views/RepoItemView';
 import { SettingsView } from '../views/Settings';
 import { common } from '@kit.AbilityKit'
-import { taskpool } from '@kit.ArkTS';
-import { getAllRepos, initApp } from '../services/AppService';
-import { hilog } from '@kit.PerformanceAnalysisKit';
-
-@Concurrent
-async function init(context: Context) {
-  initApp(context);
-}
-
-@Concurrent
-async function listRepos(context: Context) {
-  return getAllRepos(context)
-}
+import IndexViewModel from '../viewModel/IndexViewModel';
 
 @Entry
 @Component
 struct Index {
   private context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+  @State indexViewModel: IndexViewModel = new IndexViewModel();
   pathStack: NavPathStack = new NavPathStack();
   @State showAboutSheet: boolean = false;
   @State showHelpSheet: boolean = false;
   @State showSettingSheet: boolean = false;
   @State showCreateRepo: boolean = false;
-  @State repos: RepoItem[] = [];
-  @State isLoading: boolean = false;
-  @State loadingMessage: string = "";
-
-  loadRepoList() {
-    hilog.info(0x0000, "appTag", "index get repo list");
-    this.loadingMessage = "加载中...";
-    this.isLoading = true;
-    this.repos = [];
-    taskpool.execute(listRepos, this.context).then((data) => {
-      hilog.info(0x0000, "appTag", "list repos success");
-      this.repos = data as RepoItem[];
-      this.repos.forEach((item) => {
-        hilog.info(0x0000, "appTag", "%{public}s %{public}s %{public}d", item.name, item.branch, item.branches);
-      })
-      this.isLoading = false;
-    })
-  }
 
   aboutToAppear() {
-    taskpool.execute(init, this.context).then((_) => {
-      this.context.eventHub.on('reload_app_list', (_: string) => {
-        this.repos = [];
-        this.loadRepoList();
-      });
-      this.context.eventHub.on('add_repo_success', (_: string) => {
-        this.showCreateRepo = false;
-      })
-      taskpool.execute(initGit, this.context.filesDir).then((_) => {
-        this.loadRepoList();
-      });
-    });
+    this.indexViewModel.init(this.context);
+    this.context.eventHub.on('add_repo_success', (_: string) => {
+      this.showCreateRepo = false;
+    })
   }
 
   @Builder
@@ -154,7 +116,7 @@ struct Index {
 
           // 仓库列表
           List() {
-            ForEach(this.repos, (r: RepoItem) => {
+            ForEach(this.indexViewModel.repos, (r: RepoItem) => {
               RepoItemView({
                 repo: r
               }).onClick(() => {
@@ -186,7 +148,11 @@ struct Index {
             preferType: SheetType.CENTER,
           })
 
-          PopupLoading({ visible: this.isLoading, modalSize: 160, message: this.loadingMessage })
+          PopupLoading({
+            visible: this.indexViewModel.isLoading,
+            modalSize: 160,
+            message: this.indexViewModel.loadingMessage
+          })
 
         }
         .bindSheet(this.showAboutSheet, this.aboutSheet, {
