@@ -1,0 +1,16 @@
+使用方式（CMake 示例）：
+
+  # 假设你把本目录放到 <project>/third_party/libgit2-ohos
+  set(LIBGIT2_OHOS_ROOT "<your_project_source_dir>/third_party/libgit2-ohos")
+  include_directories("${LIBGIT2_OHOS_ROOT}/include")
+  target_link_libraries(your_ohos_target PRIVATE
+    "${LIBGIT2_OHOS_ROOT}/lib/libgit2.a"
+    "${LIBGIT2_OHOS_ROOT}/lib/libmbedtls.a"
+    "${LIBGIT2_OHOS_ROOT}/lib/libmbedx509.a"
+    "${LIBGIT2_OHOS_ROOT}/lib/libmbedcrypto.a"
+    z m)
+
+运行时证书：
+  本目录已包含 cacert.pem（来自 curl 社区 CA bundle）。
+  将本目录拷贝到应用可读路径后，初始化时调用：
+    git_libgit2_opts(GIT_OPT_SET_SSL_CERT_LOCATIONS, "<dist>/cacert.pem", NULL);

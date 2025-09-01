@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="zh-CN" class="h-full">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HiGit · 仓库列表</title>
+    <script>
+        (function () {
+            const key = 'higit-theme';
+            const root = document.documentElement;
+            const pref = localStorage.getItem(key) || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            if (pref === 'dark') root.classList.add('dark');
+            function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.remove('opacity-0', 'translate-y-2'); clearTimeout(window.__to); window.__to = setTimeout(() => el.classList.add('opacity-0', 'translate-y-2'), 1200); }
+            window.toggleTheme = () => { const next = root.classList.contains('dark') ? 'light' : 'dark'; root.classList.toggle('dark'); localStorage.setItem(key, next === 'dark' ? '已切换到暗色' : '已切换到亮色'); closeMenu(); }
+            window.addRepo = () => { toast('已添加（演示）'); }
+            window.toggleMenu = () => { document.getElementById('menu').classList.toggle('hidden'); }
+            window.closeMenu = () => { document.getElementById('menu').classList.add('hidden'); }
+            window.goto = (url) => { window.location.href = url; }
+            window.addEventListener('click', (e) => { const m = document.getElementById('menu'); const btn = document.getElementById('menuBtn'); if (!m || !btn) return; if (!m.classList.contains('hidden') && !m.contains(e.target) && e.target !== btn) { m.classList.add('hidden'); } });
+
+            const repos = {
+                repo1: { name: 'Hello GitViewer', branch: 'main', last: '27 秒前', branches: 4, tags: 9, commits: 13 },
+                repo2: { name: 'OhOS Toolkit', branch: 'develop', last: '昨天', branches: 7, tags: 28, commits: 1204 }
+            };
+            function renderPreview(r) {
+                if (!r) return `<div class='text-sm text-slate-500 p-6'>选择左侧仓库以预览；在手机上将进入详情页。</div>`;
+                return `
+        <div class="rounded-2xl p-4 sm:p-5 text-slate-900 dark:text-slate-100 shadow-[0_16px_40px_rgba(109,140,245,0.25)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.5)]" style="background:linear-gradient(135deg,#e6eeff,#f5e9ff 60%,#ffeadd)">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="pill bg-white/70">预览</div>
+              <h1 class="mt-2 text-lg font-semibold tracking-tight">${r.name}</h1>
+              <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">${r.branch} · 最近 ${r.last}</p>
+            </div>
+            <div class="pill bg-white/70">提交 ${r.commits}</div>
+          </div>
+          <div class="mt-4 grid grid-cols-3 gap-2 text-sm">
+            <div class="glass rounded-xl px-3 py-2 flex items-center justify-between"><span>分支</span><span class="font-semibold">${r.branches}</span></div>
+            <div class="glass rounded-xl px-3 py-2 flex items-center justify-between"><span>标签</span><span class="font-semibold">${r.tags}</span></div>
+            <div class="glass rounded-xl px-3 py-2 flex items-center justify-between"><span>提交</span><span class="font-semibold">${r.commits}</span></div>
+          </div>
+        </div>
+        <div class="mt-3 glass rounded-2xl p-3">
+          <div class="flex items-center justify-between text-sm"><span class="font-medium">最近提交</span><a class="text-brand" href="./repo.html">打开详情</a></div>
+          <ul class="mt-2 text-sm divide-y divide-slate-200 dark:divide-slate-800">
+            <li class="py-2">feat(ui): Dashboard 总览与最近提交卡片 <span class="text-xs text-slate-500">· Jane Wu · 11:23</span></li>
+            <li class="py-2">perf(fetch): 提交列表分页与“加载更多”原型 <span class="text-xs text-slate-500">· Leo X · 昨天</span></li>
+            <li class="py-2">docs: 更新 metadata-only 设计指南 <span class="text-xs text-slate-500">· QY · 2 天前</span></li>
+          </ul>
+        </div>`;
+            }
+            window.selectRepo = (id, e) => {
+                if (window.innerWidth < 1024) return; // 手机：走原有跳转
+                if (e) e.preventDefault();
+                const pane = document.getElementById('previewPane');
+                pane.innerHTML = renderPreview(repos[id]);
+            }
+            window.addEventListener('resize', () => {
+                if (window.innerWidth < 1024) document.getElementById('previewPane').innerHTML = '';
+            });
+            window.__renderPreview = () => { const pane = document.getElementById('previewPane'); if (pane && window.innerWidth >= 1024) pane.innerHTML = renderPreview(); };
+            window.addEventListener('DOMContentLoaded', window.__renderPreview);
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: { DEFAULT: '#6d8cf5' } } } } }</script>
+    <style>
+        :root {
+            --nav-bg: #ffffff;
+            --nav-border: rgba(15, 23, 42, 0.08);
+        }
+
+        .dark:root,
+        .dark {
+            --nav-bg: #0b1220;
+            --nav-border: rgba(255, 255, 255, 0.12);
+        }
+
+        .nav-safe {
+            padding-top: env(safe-area-inset-top);
+        }
+
+        .nav {
+            height: 56px;
+            background: var(--nav-bg);
+            border-bottom: 1px solid var(--nav-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        .nav-title {
+            position: absolute;
+            left: 0;
+            right: 0;
+            text-align: center;
+            pointer-events: none;
+            font-weight: 600;
+        }
+
+        .icon-btn {
+            height: 40px;
+            width: 40px;
+            display: grid;
+            place-items: center;
+            border-radius: 9999px;
+            background: transparent;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.70);
+            backdrop-filter: saturate(180%) blur(16px);
+            -webkit-backdrop-filter: saturate(180%) blur(16px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .dark .glass {
+            background: rgba(15, 23, 42, 0.60);
+            border-color: rgba(255, 255, 255, 0.10);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            padding: .5rem .75rem;
+            border-radius: 9999px;
+            font-size: .875rem;
+            font-weight: 500;
+            line-height: 1;
+            text-decoration: none;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            transition: transform .15s ease, background-color .15s ease, color .15s ease, box-shadow .15s ease;
+        }
+
+        .dark .pill {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .pill:hover {
+            transform: translateY(-1px);
+        }
+
+        .pill:active {
+            transform: translateY(0);
+        }
+
+        .tap {
+            min-height: 3rem;
+        }
+
+        .fab {
+            position: fixed;
+            right: 1rem;
+            bottom: calc(env(safe-area-inset-bottom) + 1rem);
+            height: 3.5rem;
+            width: 3.5rem;
+            border-radius: 9999px;
+            background: linear-gradient(135deg, #6d8cf5, #5180ff);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            box-shadow: 0 8px 24px rgba(81, 128, 255, .35);
+            z-index: 30;
+        }
+
+        .menu {
+            position: absolute;
+            right: .75rem;
+            top: 60px;
+            z-index: 40;
+        }
+    </style>
+</head>
+
+<body class="h-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100" onscroll="closeMenu()">
+    <!-- 标准导航条 -->
+    <div class="nav-safe"></div>
+    <header class="nav">
+        <div class="w-10"></div>
+        <div class="nav-title">HiGit</div>
+        <button id="menuBtn" onclick="toggleMenu()" class="icon-btn" aria-label="更多">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                <path
+                    d="M12 6.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Zm0 6a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Zm0 6a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z" />
+            </svg>
+        </button>
+        <!-- 溢出菜单 -->
+        <div id="menu" class="menu hidden">
+            <div class="glass rounded-xl overflow-hidden">
+                <button onclick="toggleTheme()"
+                    class="w-40 text-left px-4 py-3 text-sm hover:bg-slate-900/5 dark:hover:bg-white/10">主题切换</button>
+                <button onclick="goto('./settings.html')"
+                    class="w-40 text-left px-4 py-3 text-sm hover:bg-slate-900/5 dark:hover:bg-white/10">设置</button>
+                <button onclick="goto('./about.html')"
+                    class="w-40 text-left px-4 py-3 text-sm hover:bg-slate-900/5 dark:hover:bg-white/10">关于</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主-详 分栏：lg 及以上显示右侧预览 -->
+    <main class="mx-auto max-w-6xl px-4 pb-24 lg:grid lg:grid-cols-2 lg:gap-6"
+        style="padding-bottom: calc(env(safe-area-inset-bottom) + 5rem)">
+        <section class="mt-4 space-y-3">
+            <a href="./repo.html" onclick="selectRepo('repo1', event)" class="block no-underline text-inherit">
+                <div class="glass rounded-2xl p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="pill bg-slate-900/5 dark:bg-white/10">GitHub</span>
+                                <span
+                                    class="pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">活跃</span>
+                            </div>
+                            <h2 class="mt-2 text-base font-semibold truncate">Hello GitViewer</h2>
+                            <p class="mt-1 text-sm text-slate-600 dark:text-slate-300 truncate">main · 最近提交 27 秒前 · 分支 4
+                                · 标签 9 · 提交 13</p>
+                        </div>
+                        <div class="hidden sm:flex gap-2">
+                            <span class="pill bg-slate-900/5 dark:bg-white/10">分支 4</span>
+                            <span class="pill bg-slate-900/5 dark:bg-white/10">标签 9</span>
+                            <span class="pill bg-slate-900/5 dark:bg-white/10">提交 13</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 grid grid-cols-12 gap-1 items-center">
+                        <div class="h-2 rounded bg-emerald-300 col-span-2"></div>
+                        <div class="h-2 rounded bg-emerald-400 col-span-2"></div>
+                        <div class="h-2 rounded bg-emerald-500 col-span-4"></div>
+                        <div class="h-2 rounded bg-emerald-400 col-span-2"></div>
+                        <div class="h-2 rounded bg-emerald-300 col-span-2"></div>
+                    </div>
+                </div>
+            </a>
+
+            <a href="./repo.html" onclick="selectRepo('repo2', event)" class="block no-underline text-inherit">
+                <div class="glass rounded-2xl p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="pill bg-slate-900/5 dark:bg-white/10">GitLab</span>
+                                <span class="pill bg-slate-900/5 dark:bg-white/10">空闲</span>
+                            </div>
+                            <h2 class="mt-2 text-base font-semibold truncate">OhOS Toolkit</h2>
+                            <p class="mt-1 text-sm text-slate-600 dark:text-slate-300 truncate">develop · 最近同步 昨天 · 分支 7
+                                · 标签 28 · 提交 1,204</p>
+                        </div>
+                        <div class="hidden sm:flex gap-2">
+                            <span class="pill bg-slate-900/5 dark:bg-white/10">分支 7</span>
+                            <span class="pill bg-slate-900/5 dark:bg-white/10">标签 28</span>
+                            <span class="pill bg-slate-900/5 dark:bg-white/10">提交 1,204</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 grid grid-cols-12 gap-1 items-center">
+                        <div class="h-2 rounded bg-indigo-300 col-span-3"></div>
+                        <div class="h-2 rounded bg-indigo-400 col-span-3"></div>
+                        <div class="h-2 rounded bg-indigo-500 col-span-6"></div>
+                    </div>
+                </div>
+            </a>
+        </section>
+
+        <aside id="previewPane" class="hidden lg:block mt-4"></aside>
+    </main>
+
+    <button class="fab" aria-label="添加仓库" onclick="addRepo()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+            <path
+                d="M12 4.5a1 1 0 0 1 1 1V11h5.5a1 1 0 1 1 0 2H13v5.5a1 1 0 1 1-2 0V13H5.5a1 1 0 0 1 0-2H11V5.5a1 1 0 0 1 1-1Z" />
+        </svg>
+    </button>
+
+    <div id="toast"
+        class="fixed left-1/2 -translate-x-1/2 bottom-24 glass rounded-full px-3 py-1 text-xs opacity-0 translate-y-2 transition">
+        OK</div>
+
+    <footer class="py-8 text-center text-xs text-slate-500">HiGit · 列表原型 · 仅用于设计演示</footer>
+</body>
+
+</html>

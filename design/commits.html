@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN" class="h-full">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HiGit · 提交历史</title>
+    <script>
+        (function () { const k = 'higit-theme', r = document.documentElement, p = localStorage.getItem(k) || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); if (p === 'dark') r.classList.add('dark'); window.toggleTheme = () => { const n = r.classList.contains('dark') ? 'light' : 'dark'; r.classList.toggle('dark'); localStorage.setItem(k, n); } window.switchBranch = () => { }; window.goBack = () => { try { if (history.length > 1) { history.back(); return; } } catch (_) { } window.location.href = './repo.html'; }; })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: { DEFAULT: '#6d8cf5' } } } } }</script>
+    <style>
+        :root {
+            --nav-bg: #ffffff;
+            --nav-border: rgba(15, 23, 42, .08);
+        }
+
+        .dark:root,
+        .dark {
+            --nav-bg: #0b1220;
+            --nav-border: rgba(255, 255, 255, .12);
+        }
+
+        .nav-safe {
+            padding-top: env(safe-area-inset-top);
+        }
+
+        .nav {
+            height: 56px;
+            background: var(--nav-bg);
+            border-bottom: 1px solid var(--nav-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            position: sticky;
+            top: 0;
+            z-index: 20
+        }
+
+        .nav-title {
+            font-weight: 600
+        }
+
+        .nav-left {
+            position: absolute;
+            left: 12px;
+            display: flex;
+            align-items: center
+        }
+
+        .icon-btn {
+            height: 40px;
+            width: 40px;
+            display: grid;
+            place-items: center;
+            border-radius: 9999px;
+            background: transparent
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, .70);
+            backdrop-filter: saturate(180%) blur(16px);
+            -webkit-backdrop-filter: saturate(180%) blur(16px);
+            border: 1px solid rgba(0, 0, 0, .05);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .08)
+        }
+
+        .dark .glass {
+            background: rgba(15, 23, 42, .60);
+            border-color: rgba(255, 255, 255, .10);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .35)
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            padding: .5rem .75rem;
+            border-radius: 9999px;
+            font-size: .875rem;
+            font-weight: 500;
+            line-height: 1;
+            text-decoration: none;
+            border: 1px solid rgba(0, 0, 0, .06);
+            transition: transform .15s ease, background-color .15s ease, color .15s ease, box-shadow .15s ease
+        }
+
+        .dark .pill {
+            border-color: rgba(255, 255, 255, .12)
+        }
+
+        .pill:hover {
+            transform: translateY(-1px)
+        }
+
+        .pill:active {
+            transform: translateY(0)
+        }
+
+        .tap {
+            min-height: 3rem
+        }
+    </style>
+</head>
+
+<body class="h-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+    <div class="nav-safe"></div>
+    <header class="nav">
+        <div class="nav-left">
+            <button type="button" class="icon-btn" aria-label="返回" onclick="goBack()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                    <path
+                        d="M13.28 5.22a.75.75 0 0 1 0 1.06L8.56 11l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z" />
+                </svg>
+            </button>
+        </div>
+        <div class="nav-title">提交历史</div>
+    </header>
+
+    <main class="mx-auto max-w-3xl px-4 pb-16" style="padding-bottom: calc(env(safe-area-inset-bottom) + 2rem)">
+        <section class="mt-4 glass rounded-2xl p-3 flex items-center gap-3 text-sm">
+            <span class="text-slate-500">分支</span>
+            <select onchange="switchBranch()" class="rounded-full px-4 py-2.5 bg-white/70 dark:bg-slate-900/40 tap">
+                <option selected>main</option>
+                <option>develop</option>
+                <option>feature/ui</option>
+            </select>
+            <span class="text-xs text-slate-500">按分支查看提交</span>
+        </section>
+
+        <section class="mt-3 glass rounded-2xl p-2">
+            <ul class="divide-y divide-slate-200 dark:divide-slate-800">
+                <li class="py-3 px-2">
+                    <p class="font-medium truncate">feat(ui): 调整仓库详情布局与胶囊样式</p>
+                    <p class="text-xs text-slate-500 mt-1">作者 Jane Wu · 2025-08-10 11:23</p>
+                </li>
+                <li class="py-3 px-2">
+                    <p class="font-medium truncate">perf(fetch): 提交列表分页与加载更多体验</p>
+                    <p class="text-xs text-slate-500 mt-1">作者 Leo X · 2025-08-09 20:01</p>
+                </li>
+                <li class="py-3 px-2">
+                    <p class="font-medium truncate">docs: 更新 metadata-only 指南</p>
+                    <p class="text-xs text-slate-500 mt-1">作者 QY · 2025-08-08 09:37</p>
+                </li>
+                <li class="py-3 px-2">
+                    <p class="font-medium truncate">chore: 清理无用资源与样式</p>
+                    <p class="text-xs text-slate-500 mt-1">作者 JW · 2025-08-07 18:20</p>
+                </li>
+                <li class="py-3 px-2">
+                    <p class="font-medium truncate">fix(repo): 修复浅克隆在弱网下的重试</p>
+                    <p class="text-xs text-slate-500 mt-1">作者 LX · 2025-08-06 08:15</p>
+                </li>
+                <li class="py-3 px-2">
+                    <p class="font-medium truncate">feat(commits): 新增分支选择器</p>
+                    <p class="text-xs text-slate-500 mt-1">作者 JW · 2025-08-05 12:11</p>
+                </li>
+                <li class="py-3 px-2">
+                    <p class="font-medium truncate">refactor: 提交卡组件拆分</p>
+                    <p class="text-xs text-slate-500 mt-1">作者 QY · 2025-08-04 09:00</p>
+                </li>
+                <li class="py-3 px-2">
+                    <p class="font-medium truncate">build: 升级依赖</p>
+                    <p class="text-xs text-slate-500 mt-1">作者 LX · 2025-08-03 17:45</p>
+                </li>
+                <li class="py-3 px-2">
+                    <p class="font-medium truncate">style: 调整暗色主题对比度</p>
+                    <p class="text-xs text-slate-500 mt-1">作者 Jane Wu · 2025-08-02 10:05</p>
+                </li>
+                <li class="py-3 px-2">
+                    <p class="font-medium truncate">feat: 初始提交</p>
+                    <p class="text-xs text-slate-500 mt-1">作者 JW · 2025-08-01 08:00</p>
+                </li>
+            </ul>
+            <div class="p-3 flex items-center justify-center">
+                <button class="pill bg-slate-900/5 dark:bg-white/10">加载更多</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="py-8 text-center text-xs text-slate-500">HiGit · 提交历史原型 · 仅用于设计演示</footer>
+</body>
+
+</html>

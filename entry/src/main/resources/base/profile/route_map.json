@@ -1,0 +1,25 @@
+{
+  "routerMap": [
+    {
+      "name": "RepoDetail",
+      "pageSourceFile": "src/main/ets/pages/RepoDetail.ets",
+      "buildFunction": "RepoDetailBuilder",
+      "data": {
+      }
+    },
+    {
+      "name": "CommitHistory",
+      "pageSourceFile": "src/main/ets/pages/CommitHistory.ets",
+      "buildFunction": "CommitHistoryBuilder",
+      "data": {
+      }
+    },
+    {
+      "name": "Files",
+      "pageSourceFile": "src/main/ets/pages/Files.ets",
+      "buildFunction": "FilesBuilder",
+      "data": {
+      }
+    }
+  ]
+}

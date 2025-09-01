@@ -1,0 +1,10 @@
+{
+  "app": {
+    "bundleName": "com.tcodestudio.app.higit",
+    "vendor": "example",
+    "versionCode": 120,
+    "versionName": "0.1.2",
+    "icon": "$media:layered_image",
+    "label": "$string:app_name"
+  }
+}

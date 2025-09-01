@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-CN" class="h-full">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HiGit · 仓库详情</title>
+    <script>
+        (function () {
+            const key = 'higit-theme';
+            const root = document.documentElement;
+            const pref = localStorage.getItem(key) || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            if (pref === 'dark') root.classList.add('dark');
+            window.toggleTheme = () => { const next = root.classList.contains('dark') ? 'light' : 'dark'; root.classList.toggle('dark'); localStorage.setItem(key, next); }
+            let toastTimer; window.toast = (msg) => { const el = document.getElementById('toast'); el.textContent = msg; el.classList.remove('opacity-0', 'translate-y-2'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.add('opacity-0', 'translate-y-2'), 1200); }
+            window.switchBranch = () => toast('已切换分支（演示）');
+            window.goBack = () => { try { if (history.length > 1) { history.back(); return; } } catch (_) { } window.location.href = './index.html'; };
+
+            const previewTpl = (c) => `
+        <div class="rounded-2xl p-4 glass">
+          <div class="text-xs text-slate-500">提交预览</div>
+          <h2 class="mt-2 text-lg font-semibold">${c.title}</h2>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">作者 ${c.author} · ${c.time} · 分支 ${c.branch}</p>
+          <div class="mt-4 text-sm leading-6 text-slate-700 dark:text-slate-200">${c.body}</div>
+        </div>`;
+
+            window.previewCommit = (idx, e) => {
+                if (window.innerWidth < 1024) return; // 小屏不渲染预览
+                if (e) e.preventDefault();
+                const data = [
+                    { title: 'feat(ui): Dashboard 总览与最近提交卡片', author: 'Jane Wu', time: '2025-08-10 11:23', branch: 'main', body: '采用胶囊与玻璃拟态，统一触控尺寸与圆角，适配亮/暗色。' },
+                    { title: 'perf(fetch): 提交列表分页与“加载更多”原型', author: 'Leo X', time: '2025-08-09 20:01', branch: 'develop', body: '新增分页与加载更多占位，优化滚动性能与占位骨架。' },
+                    { title: 'docs: 更新 metadata-only 设计指南', author: 'QY', time: '2025-08-08 09:37', branch: 'feature/ui', body: '补充浅获取与逐步 deepen 策略说明。' },
+                ];
+                const pane = document.getElementById('commitPreview');
+                pane.innerHTML = previewTpl(data[idx] || data[0]);
+                const anchor = document.getElementById('commitAnchor');
+                if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+
+            window.addEventListener('resize', () => { if (window.innerWidth < 1024) { const pane = document.getElementById('commitPreview'); if (pane) pane.innerHTML = ''; } });
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: { DEFAULT: '#6d8cf5' } } } } }</script>
+    <style>
+        :root {
+            --nav-bg: #ffffff;
+            --nav-border: rgba(15, 23, 42, 0.08);
+        }
+
+        .dark:root,
+        .dark {
+            --nav-bg: #0b1220;
+            --nav-border: rgba(255, 255, 255, 0.12);
+        }
+
+        .nav-safe {
+            padding-top: env(safe-area-inset-top);
+        }
+
+        .nav {
+            height: 56px;
+            background: var(--nav-bg);
+            border-bottom: 1px solid var(--nav-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        .nav-title {
+            font-weight: 600;
+        }
+
+        .nav-left {
+            position: absolute;
+            left: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .icon-btn {
+            height: 40px;
+            width: 40px;
+            display: grid;
+            place-items: center;
+            border-radius: 9999px;
+            background: transparent;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.70);
+            backdrop-filter: saturate(180%) blur(16px);
+            -webkit-backdrop-filter: saturate(180%) blur(16px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .dark .glass {
+            background: rgba(15, 23, 42, 0.60);
+            border-color: rgba(255, 255, 255, 0.10);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            padding: .5rem .75rem;
+            border-radius: 9999px;
+            font-size: .875rem;
+            font-weight: 500;
+            line-height: 1;
+            text-decoration: none;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            transition: transform .15s ease, background-color .15s ease, color .15s ease, box-shadow .15s ease;
+        }
+
+        .dark .pill {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .pill:hover {
+            transform: translateY(-1px);
+        }
+
+        .pill:active {
+            transform: translateY(0);
+        }
+
+        .tap {
+            min-height: 3rem;
+        }
+    </style>
+</head>
+
+<body class="h-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+    <div class="nav-safe"></div>
+    <header class="nav">
+        <div class="nav-left">
+            <button type="button" class="icon-btn" aria-label="返回" onclick="goBack()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                    <path
+                        d="M13.28 5.22a.75.75 0 0 1 0 1.06L8.56 11l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z" />
+                </svg>
+            </button>
+        </div>
+        <div class="nav-title">仓库详情</div>
+    </header>
+
+    <!-- lg: 两栏布局 -->
+    <main class="mx-auto max-w-6xl px-4 pb-20 lg:grid lg:grid-cols-2 lg:gap-6"
+        style="padding-bottom: calc(env(safe-area-inset-bottom) + 4rem)">
+        <section class="mt-4 space-y-5">
+            <div class="rounded-2xl p-4 sm:p-5 text-slate-900 dark:text-slate-100 shadow-[0_16px_40px_rgba(109,140,245,0.25)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+                style="background:linear-gradient(135deg,#e6eeff, #f5e9ff 60%, #ffeadd)">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <div class="pill bg-white/70">Hello GitViewer</div>
+                        <h1 class="mt-2 text-xl font-semibold tracking-tight">develop</h1>
+                    </div>
+                    <div class="pill bg-white/70">13 提交</div>
+                </div>
+                <div class="mt-4 grid grid-cols-4 gap-2 text-sm">
+                    <div class="glass rounded-2xl px-3 py-2 flex items-center justify-between"><span>分支</span><span
+                            class="font-semibold">4</span></div>
+                    <div class="glass rounded-2xl px-3 py-2 flex items-center justify-between"><span>标签</span><span
+                            class="font-semibold">9</span></div>
+                    <div class="glass rounded-2xl px-3 py-2 flex items-center justify-between"><span>未暂存</span><span
+                            class="font-semibold text-rose-600">2</span></div>
+                    <div class="glass rounded-2xl px-3 py-2 flex items-center justify-between"><span>上次同步</span><span
+                            class="font-semibold">27 秒</span></div>
+                </div>
+                <div class="mt-4 glass rounded-2xl p-3">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="font-medium">Graph</span>
+                        <a class="text-brand" href="./commits.html">查看更多提交</a>
+                    </div>
+                    <div class="mt-3 grid grid-cols-12 gap-1 items-center">
+                        <div class="h-2 rounded bg-emerald-300 col-span-2"></div>
+                        <div class="h-2 rounded bg-emerald-400 col-span-2"></div>
+                        <div class="h-2 rounded bg-emerald-500 col-span-4"></div>
+                        <div class="h-2 rounded bg-emerald-400 col-span-2"></div>
+                        <div class="h-2 rounded bg-emerald-300 col-span-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass rounded-2xl p-3 flex items-center gap-3 text-sm">
+                <span class="text-slate-500">分支</span>
+                <select onchange="switchBranch()" class="rounded-full px-4 py-2.5 bg-white/70 dark:bg-slate-900/40 tap">
+                    <option selected>main</option>
+                    <option>develop</option>
+                    <option>feature/ui</option>
+                </select>
+                <span class="text-xs text-slate-500">显示该分支的提交</span>
+            </div>
+
+            <div id="commitAnchor" class="glass rounded-2xl p-2">
+                <ul class="divide-y divide-slate-200 dark:divide-slate-800">
+                    <li class="py-3 px-2">
+                        <a href="#" onclick="previewCommit(0, event)" class="block">
+                            <p class="font-medium truncate">feat(ui): Dashboard 总览与最近提交卡片</p>
+                            <p class="text-xs text-slate-500 mt-1">作者 Jane Wu · 2025-08-10 11:23</p>
+                        </a>
+                    </li>
+                    <li class="py-3 px-2">
+                        <a href="#" onclick="previewCommit(1, event)" class="block">
+                            <p class="font-medium truncate">perf(fetch): 提交列表分页与“加载更多”原型</p>
+                            <p class="text-xs text-slate-500 mt-1">作者 Leo X · 2025-08-09 20:01</p>
+                        </a>
+                    </li>
+                    <li class="py-3 px-2">
+                        <a href="#" onclick="previewCommit(2, event)" class="block">
+                            <p class="font-medium truncate">docs: 更新 metadata-only 设计指南</p>
+                            <p class="text-xs text-slate-500 mt-1">作者 QY · 2025-08-08 09:37</p>
+                        </a>
+                    </li>
+                </ul>
+                <div class="p-3 flex items-center justify-center">
+                    <a href="./commits.html" class="pill bg-slate-900/5 dark:bg-white/10">查看更多提交</a>
+                </div>
+            </div>
+        </section>
+
+        <aside id="commitPreview" class="hidden lg:block mt-4 space-y-3"></aside>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast"
+        class="fixed left-1/2 -translate-x-1/2 bottom-12 glass rounded-full px-3 py-1 text-xs opacity-0 translate-y-2 transition">
+        OK</div>
+
+    <footer class="py-8 text-center text-xs text-slate-500">HiGit · 仅用于设计演示</footer>
+</body>
+
+</html>
