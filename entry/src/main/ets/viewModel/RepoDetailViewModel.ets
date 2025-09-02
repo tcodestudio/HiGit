@@ -17,10 +17,10 @@ import { ToastHook } from "../utils/ToastHook";
 import { emitter } from "@kit.BasicServicesKit";
 import { hilog } from "@kit.PerformanceAnalysisKit";
 import { removeRepo } from "../services/AppService";
+import BaseViewModel from "../views/BaseViewModel";
 
 @Observed
-export default class RepoDetailViewModel {
-  private toastHook?: ToastHook;
+export default class RepoDetailViewModel extends BaseViewModel {
   // 加载状态
   @Track isLoading: boolean = false;
   @Track loadingMessage: string = "";
@@ -44,10 +44,6 @@ export default class RepoDetailViewModel {
     if (this.popHandler) {
       this.popHandler();
     }
-  }
-
-  setToastHook(hook: ToastHook) {
-    this.toastHook = hook;
   }
 
   updateRepoItem(repo: RepoItem) {
@@ -165,7 +161,7 @@ export default class RepoDetailViewModel {
         this.showErrorMessage = true;
       } else {
         removeRepo(context, this.repo!.url);
-        this.toastHook?.showToast(result.message);
+        this.toastHook?.showToast("仓库移除成功");
         this.pop();
       }
       this.isLoading = false;

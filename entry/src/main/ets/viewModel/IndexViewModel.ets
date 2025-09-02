@@ -3,6 +3,7 @@ import { hilog } from "@kit.PerformanceAnalysisKit";
 import { taskpool } from "@kit.ArkTS";
 import { getAllRepos, initApp } from "../services/AppService";
 import { initGit } from "../services/GitService";
+import BaseViewModel from "../views/BaseViewModel";
 
 
 @Concurrent
@@ -16,7 +17,7 @@ async function listRepos(context: Context) {
 }
 
 @Observed
-export default class IndexViewModel {
+export default class IndexViewModel extends BaseViewModel {
   @Track isLoading: boolean = false;
   @Track loadingMessage: string = "";
   @Track repos: RepoItem[] = [];

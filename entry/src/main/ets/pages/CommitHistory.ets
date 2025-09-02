@@ -1,13 +1,11 @@
-import { RepoItem } from "../data/RepoItem";
-import { getCommits, parseCommitList } from "../services/GitService";
 import { CommitItemView } from "../views/CommitItemVIew";
-import { hilog } from "@kit.PerformanceAnalysisKit";
 import { getRepoById } from "../services/AppService";
 import { common } from "@kit.AbilityKit";
 import { PromptAction } from "@kit.ArkUI";
-import { JSON, taskpool } from "@kit.ArkTS";
-import { Result } from "../data/Result";
+import { JSON } from "@kit.ArkTS";
 import { CommitItem } from '../data/Commit'
+import CommitHistoryViewModel from "../viewModel/CommitHistoryViewModel";
+import { ToastHook } from "../utils/ToastHook";
 
 interface ParamData {
   id: string;
@@ -24,52 +22,18 @@ struct CommitHistory {
   private uiContext: UIContext = this.getUIContext();
   private context = this.uiContext.getHostContext() as common.UIAbilityContext;
   private promptAction: PromptAction = this.uiContext.getPromptAction();
+  private toastHook: ToastHook = new ToastHook(this.uiContext);
+  @State viewModel: CommitHistoryViewModel = new CommitHistoryViewModel();
   pathStack: NavPathStack = new NavPathStack();
-  @State isRefreshing: boolean = false;
-  @State isLoading: boolean = false;
-  @State selectedBranch: string = 'main';
-  @State refreshing: boolean = false;
   @State refreshOffset: number = 0;
   @State refreshState: RefreshStatus = RefreshStatus.Inactive;
-  // 分页数据
-  private pageSize: number = 20;
-  @State currentPage: number = 0;
-  @State isLastPage: boolean = false;
-  // 数据
-  @State commits: CommitItem[] = [];
-  @State repo: RepoItem | null = null;
 
-  ready() {
-    this.loadCommits();
+  aboutToAppear() {
+    this.viewModel.setToastHook(this.toastHook);
   }
 
-  async loadCommits() {
-    if (this.isLastPage) {
-      this.isLoading = false;
-      this.refreshing = false;
-      return;
-    }
-    this.isLoading = true;
-    hilog.info(0x0000, "appTag", "get commit page %{public}d", this.currentPage);
-    taskpool.execute(getCommits, this.repo!.url, this.selectedBranch, this.pageSize, this.currentPage * this.pageSize)
-      .then((data) => {
-        let result = data as Result;
-        if (result.success) {
-          // 使用 parseCommitList 解析提交数据
-          let list = parseCommitList(result.data);
-          if (list.length < this.pageSize) {
-            this.isLastPage = true;
-          }
-          this.commits.push(...list);
-          hilog.info(0x0000, "appTag", "get %{public}d commits", this.commits.length);
-        } else {
-          this.promptAction.showToast({
-            message: result.message
-          })
-        }
-        this.isLoading = false;
-        this.isRefreshing = false;
-      })
+  ready() {
+    this.viewModel.loadCommits();
   }
 
   @Builder
@@ -78,7 +42,7 @@ struct CommitHistory {
       if (this.refreshState != RefreshStatus.Inactive && this.refreshState != RefreshStatus.Done) {
         Progress({ value: this.refreshOffset, total: 64, type: ProgressType.Ring })
           .width(32).height(32)
-          .style({ status: this.refreshing ? ProgressStatus.LOADING : ProgressStatus.PROGRESSING })
+          .style({ status: this.viewModel.refreshing ? ProgressStatus.LOADING : ProgressStatus.PROGRESSING })
           .margin(10)
       }
     }
@@ -95,7 +59,7 @@ struct CommitHistory {
     }.width("100%")
     .height(64)
     .justifyContent(FlexAlign.Center)
-    .visibility(this.isLoading ? Visibility.Visible : Visibility.Hidden)
+    .visibility(this.viewModel.isLoading ? Visibility.Visible : Visibility.Hidden)
   }
 
   initializeFromParams(context: NavDestinationContext): void {
@@ -111,8 +75,8 @@ struct CommitHistory {
       let repoData = getRepoById(this.context, param.id);
 
       if (repoData) {
-        this.repo = repoData;
-        this.selectedBranch = param.branch;
+        this.viewModel.updateRepo(repoData);
+        this.viewModel.updateBranch(param.branch);
         this.ready();
       } else {
         this.promptAction.showToast({ message: "仓库不存在" });
@@ -126,9 +90,9 @@ struct CommitHistory {
 
   build() {
     NavDestination() {
-      Refresh({ refreshing: $$this.isRefreshing, builder: this.refreshBuilder() }) {
+      Refresh({ refreshing: $$this.viewModel.isRefreshing, builder: this.refreshBuilder() }) {
         List() {
-          ForEach(this.commits, (c: CommitItem) => {
+          LazyForEach(this.viewModel.data, (c: CommitItem) => {
             ListItem() {
               CommitItemView({
                 commit: c,
@@ -146,18 +110,15 @@ struct CommitHistory {
           }
           .width('100%')
           .align(Alignment.Center)
-          .visibility(this.isLastPage ? Visibility.Visible : Visibility.Hidden)
+          .visibility(this.viewModel.isLastPage ? Visibility.Visible : Visibility.Hidden)
         }
         .width('100%')
         .height('100%')
         .onScrollIndex((start: number, end: number) => {
-          if (end >= this.commits.length - 1 && end != 0) {
-            this.isLoading = true;
-            this.currentPage = this.currentPage + 1;
-            this.loadCommits();
-            hilog.info(0x0000, "appTag", "%{public}d-%{public}d", start, end, this.commits.length);
-          } else {
-            hilog.info(0x0000, "appTag", "else %{public}d-%{public}d", start, end, this.commits.length);
+          if (end >= this.viewModel.data.totalCount() - 1 && end != 0) {
+            this.viewModel.isLoading = true;
+            this.viewModel.currentPage = this.viewModel.currentPage + 1;
+            this.viewModel.loadCommits();
           }
         })
         .scrollBar(BarState.Off)
@@ -171,10 +132,8 @@ struct CommitHistory {
         this.refreshState = state;
       })
       .onRefreshing(() => {
-        this.currentPage = 0;
-        this.commits = [];
-        this.isLastPage = false;
-        this.loadCommits();
+        this.viewModel.reset();
+        this.viewModel.loadCommits();
       })
       .refreshOffset(64)
       .pullToRefresh(true)
